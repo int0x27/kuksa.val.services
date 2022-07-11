@@ -38,7 +38,6 @@ if [ -z "$LOCK" ] || [ -z "$LOCK" ]; then
 	exit 1
 fi
 
-
 TRUNKSERVICE_PORT='50053'
 TRUNKSERVICE_EXEC_PATH="$ROOT_DIRECTORY/trunk_service"
 if [ ! -f "$TRUNKSERVICE_EXEC_PATH/testclient.py" ]; then

@@ -88,7 +88,9 @@ def main(argv):
 
     # environment values (overridden by cmdargs)
     trunk_addr = os.getenv("TRUNK_ADDR", default_addr)
-    lock_state = LockState.LOCKED if os.getenv("LOCK_STATE") != "0" else LockState.UNLOCKED
+    lock_state = (
+        LockState.LOCKED if os.getenv("LOCK_STATE") != "0" else LockState.UNLOCKED
+    )
     open_state = True if os.getenv("OPEN_STATE") != "0" else False
 
     # parse cmdline args

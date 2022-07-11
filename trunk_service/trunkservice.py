@@ -31,11 +31,11 @@ from sdv.databroker.v1.types_pb2 import ChangeType, DataType
 from sdv.edge.comfort.trunk.v1.trunk_pb2 import (
     CloseReply,
     CloseRequest,
+    LockState,
     OpenReply,
     OpenRequest,
     SetLockStateReply,
     SetLockStateRequest,
-    LockState,
     TrunkInstance,
 )
 from sdv.edge.comfort.trunk.v1.trunk_pb2_grpc import (
@@ -119,7 +119,7 @@ class TrunkService:
                     self.register_datapoints()
                     log.info("datapoints are registered.")
                     self._registered = True
-                    # Setting a dummy position for Hackathon 2 "Reunion" once after succesful registration
+                    # Setting a dummy position for Hackathon 2 "Reunion" once after successful registration
                     self.set_dummy_location()
                 except grpc.RpcError as err:
                     log.error("Failed to register datapoints")
@@ -224,7 +224,6 @@ class TrunkService:
             ChangeType.ON_CHANGE,
         )
 
-
     def register(self, name, data_type, change_type):
         self._register(name, data_type, change_type)
 
@@ -241,10 +240,18 @@ class TrunkService:
 
     def set_dummy_location(self):
         request = UpdateDatapointsRequest()
-        request.datapoints[self._ids["Vehicle.CurrentLocation.Latitude"]].double_value = 52.15034564571311
-        request.datapoints[self._ids["Vehicle.CurrentLocation.Longitude"]].double_value = 9.93070999496221
-        request.datapoints[self._ids["Vehicle.CurrentLocation.HorizontalAccuracy"]].double_value = 3
-        request.datapoints[self._ids["Vehicle.CurrentLocation.VerticalAccuracy"]].double_value = 3
+        request.datapoints[
+            self._ids["Vehicle.CurrentLocation.Latitude"]
+        ].double_value = 52.15034564571311
+        request.datapoints[
+            self._ids["Vehicle.CurrentLocation.Longitude"]
+        ].double_value = 9.93070999496221
+        request.datapoints[
+            self._ids["Vehicle.CurrentLocation.HorizontalAccuracy"]
+        ].double_value = 3
+        request.datapoints[
+            self._ids["Vehicle.CurrentLocation.VerticalAccuracy"]
+        ].double_value = 3
         try:
             log.info(" Feeding current dummy location")
             self._stub.UpdateDatapoints(request, metadata=self._metadata)
@@ -266,21 +273,33 @@ class TrunkService:
                 self._connected = is_grpc_fatal_error(err)
                 raise err
         else:
-            log.warning("Ignore updating datapoints as data broker isn't available or datapoints not registered")
+            log.warning(
+                "Ignore updating datapoints as data broker isn't available or datapoints not registered"
+            )
 
     class _TrunkService(TrunkServicer):
         def __init__(self, servicer):
             self.servicer: TrunkService = servicer
 
         def SetLockState(self, request: SetLockStateRequest, context):
-            log.info("* Request to set lock state of %s", str(request).replace("\n", " "))
-            if (request.instance == TrunkInstance.ALL or request.instance == TrunkInstance.FRONT):
+            log.info(
+                "* Request to set lock state of %s", str(request).replace("\n", " ")
+            )
+            if (
+                request.instance == TrunkInstance.ALL
+                or request.instance == TrunkInstance.FRONT
+            ):
                 self.servicer.set_bool_datapoint(
-                    "Vehicle.Body.Trunk.Front.IsLocked", (request.state == LockState.LOCKED)
+                    "Vehicle.Body.Trunk.Front.IsLocked",
+                    (request.state == LockState.LOCKED),
                 )
-            if (request.instance == TrunkInstance.ALL or request.instance == TrunkInstance.REAR):
+            if (
+                request.instance == TrunkInstance.ALL
+                or request.instance == TrunkInstance.REAR
+            ):
                 self.servicer.set_bool_datapoint(
-                    "Vehicle.Body.Trunk.Rear.IsLocked", (request.state == LockState.LOCKED)
+                    "Vehicle.Body.Trunk.Rear.IsLocked",
+                    (request.state == LockState.LOCKED),
                 )
             log.info(" Lock state updated.\n")
             return SetLockStateReply()
@@ -288,25 +307,35 @@ class TrunkService:
         def Open(self, request: OpenRequest, context):
             log.info("* Request to open %s", str(request).replace("\n", " "))
             time.sleep(0.1)
-            if (request.instance == TrunkInstance.ALL or request.instance == TrunkInstance.FRONT):
+            if (
+                request.instance == TrunkInstance.ALL
+                or request.instance == TrunkInstance.FRONT
+            ):
                 self.servicer.set_bool_datapoint(
                     "Vehicle.Body.Trunk.Front.IsOpen", True
                 )
-            if (request.instance == TrunkInstance.ALL or request.instance == TrunkInstance.REAR):
-                self.servicer.set_bool_datapoint(
-                    "Vehicle.Body.Trunk.Rear.IsOpen", True
-                )
+            if (
+                request.instance == TrunkInstance.ALL
+                or request.instance == TrunkInstance.REAR
+            ):
+                self.servicer.set_bool_datapoint("Vehicle.Body.Trunk.Rear.IsOpen", True)
             log.info(" Opening trunk.\n")
             return OpenReply()
 
         def Close(self, request: CloseRequest, context):
             log.info("* Request to close %s", str(request).replace("\n", " "))
             time.sleep(2)
-            if (request.instance == TrunkInstance.ALL or request.instance == TrunkInstance.FRONT):
+            if (
+                request.instance == TrunkInstance.ALL
+                or request.instance == TrunkInstance.FRONT
+            ):
                 self.servicer.set_bool_datapoint(
                     "Vehicle.Body.Trunk.Front.IsOpen", False
                 )
-            if (request.instance == TrunkInstance.ALL or request.instance == TrunkInstance.REAR):
+            if (
+                request.instance == TrunkInstance.ALL
+                or request.instance == TrunkInstance.REAR
+            ):
                 self.servicer.set_bool_datapoint(
                     "Vehicle.Body.Trunk.Rear.IsOpen", False
                 )
