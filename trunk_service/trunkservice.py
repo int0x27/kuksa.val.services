@@ -117,6 +117,8 @@ class TrunkService:
                     self.register_datapoints()
                     log.info("datapoints are registered.")
                     self._registered = True
+                    # Setting a dummy position for Hackathon 2 "Reunion" once after succesful registration
+                    self.set_dummy_location()
                 except grpc.RpcError as err:
                     log.error("Failed to register datapoints")
                     is_grpc_fatal_error(err)
@@ -176,7 +178,6 @@ class TrunkService:
         asyncio.run_coroutine_threadsafe(self.close(), asyncio.get_event_loop())
 
     def register_datapoints(self):
-        # Provided via CAN feeder:
         log.info("Try register datapoints")
         self.register(
             "Vehicle.Body.Trunk.Front.IsOpen",
@@ -199,6 +200,29 @@ class TrunkService:
             ChangeType.ON_CHANGE,
         )
 
+        # Basically not part of this service, but served here for Hackathon 2 "Reunion" purposes:
+        self.register(
+            "Vehicle.CurrentLocation.Latitude",
+            DataType.DOUBLE,
+            ChangeType.ON_CHANGE,
+        )
+        self.register(
+            "Vehicle.CurrentLocation.Longitude",
+            DataType.DOUBLE,
+            ChangeType.ON_CHANGE,
+        )
+        self.register(
+            "Vehicle.CurrentLocation.HorizontalAccuracy",
+            DataType.DOUBLE,
+            ChangeType.ON_CHANGE,
+        )
+        self.register(
+            "Vehicle.CurrentLocation.VerticalAccuracy",
+            DataType.DOUBLE,
+            ChangeType.ON_CHANGE,
+        )
+
+
     def register(self, name, data_type, change_type):
         self._register(name, data_type, change_type)
 
@@ -212,6 +236,20 @@ class TrunkService:
         request.list.append(registration_metadata)
         response = self._stub.RegisterDatapoints(request, metadata=self._metadata)
         self._ids[name] = response.results[name]
+
+    def set_dummy_location(self):
+        request = UpdateDatapointsRequest()
+        request.datapoints[self._ids["Vehicle.CurrentLocation.Latitude"]].double_value = 52.15034564571311
+        request.datapoints[self._ids["Vehicle.CurrentLocation.Longitude"]].double_value = 9.93070999496221
+        request.datapoints[self._ids["Vehicle.CurrentLocation.HorizontalAccuracy"]].double_value = 3
+        request.datapoints[self._ids["Vehicle.CurrentLocation.VerticalAccuracy"]].double_value = 3
+        try:
+            log.info(" Feeding current dummy location")
+            self._stub.UpdateDatapoints(request, metadata=self._metadata)
+        except grpc.RpcError as err:
+            log.warning("Feeding of current dummy location failed", exc_info=True)
+            self._connected = is_grpc_fatal_error(err)
+            raise err
 
     def set_bool_datapoint(self, name: str, value: bool):
         id = self._ids[name]
