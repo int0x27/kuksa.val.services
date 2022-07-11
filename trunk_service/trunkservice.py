@@ -35,6 +35,8 @@ from sdv.edge.comfort.trunk.v1.trunk_pb2 import (
     OpenRequest,
     SetLockStateReply,
     SetLockStateRequest,
+    LockState,
+    TrunkInstance,
 )
 from sdv.edge.comfort.trunk.v1.trunk_pb2_grpc import (
     TrunkServicer,
@@ -252,58 +254,61 @@ class TrunkService:
             raise err
 
     def set_bool_datapoint(self, name: str, value: bool):
-        id = self._ids[name]
-        request = UpdateDatapointsRequest()
-        request.datapoints[id].bool_value = value
-        log.info(" Feeding '%s' with value %s", name, value)
-        try:
-            self._stub.UpdateDatapoints(request, metadata=self._metadata)
-        except grpc.RpcError as err:
-            log.warning("Feeding %s failed", name, exc_info=True)
-            self._connected = is_grpc_fatal_error(err)
-            raise err
+        if self._connected and self._registered:
+            id = self._ids[name]
+            request = UpdateDatapointsRequest()
+            request.datapoints[id].bool_value = value
+            log.info(" Feeding '%s' with value %s", name, value)
+            try:
+                self._stub.UpdateDatapoints(request, metadata=self._metadata)
+            except grpc.RpcError as err:
+                log.warning("Feeding %s failed", name, exc_info=True)
+                self._connected = is_grpc_fatal_error(err)
+                raise err
+        else:
+            log.warning("Ignore updating datapoints as data broker isn't available or datapoints not registered")
 
     class _TrunkService(TrunkServicer):
         def __init__(self, servicer):
             self.servicer: TrunkService = servicer
 
         def SetLockState(self, request: SetLockStateRequest, context):
-            log.info("* Request to set %s", str(request).replace("\n", " "))
-            if (request.instance == ALL or request.instance == FRONT):
+            log.info("* Request to set lock state of %s", str(request).replace("\n", " "))
+            if (request.instance == TrunkInstance.ALL or request.instance == TrunkInstance.FRONT):
                 self.servicer.set_bool_datapoint(
-                    "Vehicle.Body.Trunk.Front.IsLocked", (request.state == LOCKED)
+                    "Vehicle.Body.Trunk.Front.IsLocked", (request.state == LockState.LOCKED)
                 )
-            if (request.instance == ALL or request.instance == REAR):
+            if (request.instance == TrunkInstance.ALL or request.instance == TrunkInstance.REAR):
                 self.servicer.set_bool_datapoint(
-                    "Vehicle.Body.Trunk.Rear.IsLocked", (request.state == LOCKED)
+                    "Vehicle.Body.Trunk.Rear.IsLocked", (request.state == LockState.LOCKED)
                 )
             log.info(" Lock state updated.\n")
             return SetLockStateReply()
 
         def Open(self, request: OpenRequest, context):
             log.info("* Request to open %s", str(request).replace("\n", " "))
-            sleep(100)
-            if (request.instance == ALL or request.instance == FRONT):
+            time.sleep(0.1)
+            if (request.instance == TrunkInstance.ALL or request.instance == TrunkInstance.FRONT):
                 self.servicer.set_bool_datapoint(
-                    "Vehicle.Body.Trunk.Front.IsOpen", true
+                    "Vehicle.Body.Trunk.Front.IsOpen", True
                 )
-            if (request.instance == ALL or request.instance == REAR):
+            if (request.instance == TrunkInstance.ALL or request.instance == TrunkInstance.REAR):
                 self.servicer.set_bool_datapoint(
-                    "Vehicle.Body.Trunk.Rear.IsOpen", true
+                    "Vehicle.Body.Trunk.Rear.IsOpen", True
                 )
             log.info(" Opening trunk.\n")
             return OpenReply()
 
         def Close(self, request: CloseRequest, context):
             log.info("* Request to close %s", str(request).replace("\n", " "))
-            sleep(2000)
-            if (request.instance == ALL or request.instance == FRONT):
+            time.sleep(2)
+            if (request.instance == TrunkInstance.ALL or request.instance == TrunkInstance.FRONT):
                 self.servicer.set_bool_datapoint(
-                    "Vehicle.Body.Trunk.Front.IsOpen", false
+                    "Vehicle.Body.Trunk.Front.IsOpen", False
                 )
-            if (request.instance == ALL or request.instance == REAR):
+            if (request.instance == TrunkInstance.ALL or request.instance == TrunkInstance.REAR):
                 self.servicer.set_bool_datapoint(
-                    "Vehicle.Body.Trunk.Rear.IsOpen", false
+                    "Vehicle.Body.Trunk.Rear.IsOpen", False
                 )
             log.info(" Closed trunk.\n")
             return CloseReply()
