@@ -32,6 +32,8 @@ jobs:
     needs: [call_dev_container_build]
   call_hvac_service_build:
     uses: ./.github/workflows/hvac_service.yml
+  call_trunk_service_build:
+    uses: ./.github/workflows/trunk_service.yml
   create_release:
     runs-on: ubuntu-latest
     needs:
@@ -39,6 +41,7 @@ jobs:
         call_seat_service_release,
         call_seat_service_docu_build,
         call_hvac_service_build,
+        call_trunk_service_build,
       ]
     steps:
       - name: Checkout
@@ -136,5 +139,44 @@ jobs:
         shell: bash
         run: |
           skopeo copy --all oci-archive:oci_vservice-hvac.tar "docker://ghcr.io/$GIT_HUB_REPOSITORY_NAME_LOWER_CASE/$COMPONENT_NAME:$COMPONENT_VERSION"
+          skopeo inspect --raw "docker://ghcr.io/$GIT_HUB_REPOSITORY_NAME_LOWER_CASE/$COMPONENT_NAME:$COMPONENT_VERSION" | jq
+          skopeo inspect "docker://ghcr.io/$GIT_HUB_REPOSITORY_NAME_LOWER_CASE/$COMPONENT_NAME:$COMPONENT_VERSION"
+
+  release-trunk-service-image:
+    name: "Download and push to ghcr (trunk_service)"
+    runs-on: ubuntu-latest
+
+    needs: [call_trunk_service_build]
+    steps:
+      - id: repository-name-adjusted
+        name: Prepare repository name in lower case for docker upload. This supports repository names in mixed case
+        uses: ASzc/change-string-case-action@v2
+        with:
+          string: ${{ github.repository }}
+
+      - id: get_version
+        uses: battila7/get-version-action@v2
+
+      - name: Retrieve saved Docker image
+        uses: actions/download-artifact@v3
+        with:
+          name: oci_vservice-trunk.tar
+          path: ${{github.workspace}}
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: "Push image to ghcr"
+        env:
+          COMPONENT_NAME: trunk_service
+          COMPONENT_VERSION: ${{ steps.get_version.outputs.version }}
+          GIT_HUB_REPOSITORY_NAME_LOWER_CASE: ${{ steps.repository-name-adjusted.outputs.lowercase }}
+        shell: bash
+        run: |
+          skopeo copy --all oci-archive:oci_vservice-trunk.tar "docker://ghcr.io/$GIT_HUB_REPOSITORY_NAME_LOWER_CASE/$COMPONENT_NAME:$COMPONENT_VERSION"
           skopeo inspect --raw "docker://ghcr.io/$GIT_HUB_REPOSITORY_NAME_LOWER_CASE/$COMPONENT_NAME:$COMPONENT_VERSION" | jq
           skopeo inspect "docker://ghcr.io/$GIT_HUB_REPOSITORY_NAME_LOWER_CASE/$COMPONENT_NAME:$COMPONENT_VERSION"
