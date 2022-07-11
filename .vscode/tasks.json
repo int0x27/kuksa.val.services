@@ -219,8 +219,8 @@
       "dependsOn": ["ensure-dapr", "run-trunkservice"],
       "dependsOrder": "sequence",
       "type": "shell",
-      "command": "./.vscode/scripts/run-trunk-client.sh",
-      "args": ["${input:AC_TEMP}", "${input:AC_STATUS}"],
+      "command": "./.vscode/scripts/run-trunk-cli.sh",
+      "args": ["--task", "${input:TR_LOCK_STATE}", "${input:TR_OPEN_STATE}"],
       "group": "test",
       "isBackground": false,
       "runOptions": {
@@ -331,6 +331,18 @@
       "description": "AC Status",
       "options": ["ON", "OFF"],
       "default": "ON"
+    },
+    {
+      "id": "TR_LOCK_STATE",
+      "type": "promptString",
+      "description": "Trunk Lock State [0=unlocked, 1=locked]",
+      "default": "1"
+    },
+    {
+      "id": "TR_OPEN_STATE",
+      "type": "promptString",
+      "description": "Trunk Open State [0=closed, 1=open]",
+      "default": "0"
     },
     {
       "id": "terminate",

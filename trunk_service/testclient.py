@@ -77,7 +77,7 @@ def main(argv):
 
     _usage = (
         "Usage: ./testclient.py --addr <host:name>"  # shorten line
-        " --lockstate=LOCK_STATE --openstate=OPEN_STATE\n\n"
+        " --lock=LOCK_STATE --open=OPEN_STATE\n\n"
         "Environment:\n"
         "  'VDB_ADDR'    Databroker address (host:port). Default: {}\n"
         "  'LOCK_STATE'  Trunk Lock State (0=unlocked, 1=locked). Default: {}\n"
