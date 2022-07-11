@@ -255,7 +255,10 @@ class TrunkService:
         ].double_value = 3
         try:
             log.info(" Feeding current dummy location")
-            log.debug(" Vehicle.CurrentLocation: %s", str(request.datapoints).replace("\n", ""))
+            log.debug(
+                " Vehicle.CurrentLocation: %s",
+                str(request.datapoints).replace("\n", ""),
+            )
             self._stub.UpdateDatapoints(request, metadata=self._metadata)
         except grpc.RpcError as err:
             log.warning("Feeding of current dummy location failed", exc_info=True)
