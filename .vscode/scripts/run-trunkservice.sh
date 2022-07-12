@@ -60,5 +60,5 @@ dapr run \
 	$DAPR_OPT \
 	--components-path $ROOT_DIRECTORY/.dapr/components \
 	--config $ROOT_DIRECTORY/.dapr/config.yaml \
-	-- \
+	& #	-- \
 	python3 -u ./trunkservice.py

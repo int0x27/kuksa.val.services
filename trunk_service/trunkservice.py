@@ -14,7 +14,9 @@
 import asyncio
 import logging
 import os
+import random
 import signal
+import sys
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -51,6 +53,47 @@ TRUNK_ADDRESS = os.getenv("TRUNK_ADDR", "0.0.0.0:50053")
 # VehicleDataBroker address, overridden if "DAPR_GRPC_PORT" is set in environment
 VDB_ADDRESS = os.getenv("VDB_ADDRESS", "127.0.0.1:55555")
 
+def init_logging(loglevel):
+    # create console handler and set level to debug
+    console_logger = logging.StreamHandler()
+    console_logger.setLevel(logging.DEBUG)
+
+    # create formatter
+    if sys.stdout.isatty():
+        formatter = ColorFormatter()
+    else:
+        formatter = logging.Formatter(
+            fmt="%(asctime) %(levelname)s %(name)s: %(message)s"
+        )
+
+    # add formatter to console_logger
+    console_logger.setFormatter(formatter)
+
+    # add console_logger as a global handler
+    root_logger = logging.getLogger()
+    root_logger.setLevel(loglevel)
+    root_logger.addHandler(console_logger)
+
+
+class ColorFormatter(logging.Formatter):
+    FORMAT = "{time} {{loglevel}} {logger} {msg}".format(
+        time="\x1b[2m%(asctime)s\x1b[0m",  # grey
+        logger="\x1b[2m%(name)s:\x1b[0m",  # grey
+        msg="%(message)s",
+    )
+    FORMATS = {
+        logging.DEBUG: FORMAT.format(loglevel="\x1b[34mDEBUG\x1b[0m"),  # blue
+        logging.INFO: FORMAT.format(loglevel="\x1b[32mINFO \x1b[0m"),  # green
+        logging.WARNING: FORMAT.format(loglevel="\x1b[33mWARNING\x1b[0m"),  # yellow
+        logging.ERROR: FORMAT.format(loglevel="\x1b[31mERROR\x1b[0m"),  # red
+        logging.CRITICAL: FORMAT.format(loglevel="\x1b[31mCRITICAL\x1b[0m"),  # red
+    }
+
+    def format(self, record):
+        log_fmt = self.FORMATS.get(record.levelno)
+        formatter = logging.Formatter(log_fmt)
+        return formatter.format(record)
+
 
 def is_grpc_fatal_error(e: grpc.RpcError) -> bool:
     if (
@@ -78,6 +121,10 @@ class TrunkService:
         self._address = trunk_address
         self._ids = {}
         self._connected = False
+        
+        # initial gps position
+        self._location = {"lat": 52.15034564571311, "lon": .93070999496221, "h_acc": 3, "v_acc": 2}
+        
         self._registered = False
         self._shutdown = False
         self._databroker_thread = Thread(
@@ -153,11 +200,13 @@ class TrunkService:
                     time.sleep(3)
                 except Exception:
                     log.error("Failed to register datapoints", exc_info=True)
-                    time.sleep(1)
+                    time.sleep(10)
                     continue
             else:
+                # feed some dummy location
+                self.set_dummy_location()
                 # TODO: check if dapr grpc proxy has active connection
-                time.sleep(1)
+                time.sleep(10)
 
     def serve(self):
         log.info("Starting Trunk Service on %s", self._address)
@@ -239,26 +288,32 @@ class TrunkService:
         self._ids[name] = response.results[name]
         log.info("Registered %s with id: %s", name, self._ids[name])
 
+    def simulate_location(self):
+        # simulate some location jitter       
+        self._location["lat"] =  + self._location["lat"] + random.uniform(-0.00001, 0.00001)
+        self._location["lon"] =  + self._location["lon"] + random.uniform(-0.00001, 0.00001)
+        self._location["h_acc"] = random.randint(1, 10)
+        self._location["v_acc"] = random.randint(1, 20)
+        
+    
     def set_dummy_location(self):
+        self.simulate_location()
         request = UpdateDatapointsRequest()
         request.datapoints[
             self._ids["Vehicle.CurrentLocation.Latitude"]
-        ].double_value = 52.15034564571311
+        ].double_value = self._location["lat"]
         request.datapoints[
             self._ids["Vehicle.CurrentLocation.Longitude"]
-        ].double_value = 9.93070999496221
+        ].double_value = self._location["lon"]
         request.datapoints[
             self._ids["Vehicle.CurrentLocation.HorizontalAccuracy"]
-        ].double_value = 3
+        ].double_value = self._location["h_acc"]
         request.datapoints[
             self._ids["Vehicle.CurrentLocation.VerticalAccuracy"]
-        ].double_value = 3
+        ].double_value = self._location["v_acc"]
+
         try:
-            log.info(" Feeding current dummy location")
-            log.debug(
-                " Vehicle.CurrentLocation: %s",
-                str(request.datapoints).replace("\n", ""),
-            )
+            log.debug(" Feeding location: %s", self._location);
             self._stub.UpdateDatapoints(request, metadata=self._metadata)
         except grpc.RpcError as err:
             log.warning("Feeding of current dummy location failed", exc_info=True)
@@ -355,7 +410,9 @@ async def main():
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
+        # set root loglevel etc
+    init_logging(logging.INFO)
+    # logging.basicConfig(level=logging.INFO)
     log.setLevel(logging.DEBUG)
     LOOP = asyncio.get_event_loop()
     LOOP.add_signal_handler(signal.SIGTERM, LOOP.stop)
