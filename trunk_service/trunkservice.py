@@ -63,7 +63,7 @@ def init_logging(loglevel):
         formatter = ColorFormatter()
     else:
         formatter = logging.Formatter(
-            fmt="%(asctime) %(levelname)s %(name)s: %(message)s"
+            fmt="%(asctime)s %(levelname)s %(name)s: %(message)s"
         )
 
     # add formatter to console_logger
