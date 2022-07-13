@@ -53,6 +53,7 @@ TRUNK_ADDRESS = os.getenv("TRUNK_ADDR", "0.0.0.0:50053")
 # VehicleDataBroker address, overridden if "DAPR_GRPC_PORT" is set in environment
 VDB_ADDRESS = os.getenv("VDB_ADDRESS", "127.0.0.1:55555")
 
+
 def init_logging(loglevel):
     # create console handler and set level to debug
     console_logger = logging.StreamHandler()
@@ -121,10 +122,15 @@ class TrunkService:
         self._address = trunk_address
         self._ids = {}
         self._connected = False
-        
+
         # initial gps position
-        self._location = {"lat": 52.15034564571311, "lon": .93070999496221, "h_acc": 3, "v_acc": 2}
-        
+        self._location = {
+            "lat": 52.15034564571311,
+            "lon": 0.93070999496221,
+            "h_acc": 3,
+            "v_acc": 2,
+        }
+
         self._registered = False
         self._shutdown = False
         self._databroker_thread = Thread(
@@ -293,16 +299,15 @@ class TrunkService:
         self._location["lat"] = self._location["lat"] + random.uniform(  # nosec
             -0.00001, 0.00001
         )
-        self._location["lat"] = self._location["lat"] + random.uniform(  #nosec
+        self._location["lat"] = self._location["lat"] + random.uniform(  # nosec
             -0.00001, 0.00001
         )
-        self._location["lon"] = self._location["lon"] + random.uniform(  #nosec
+        self._location["lon"] = self._location["lon"] + random.uniform(  # nosec
             -0.00001, 0.00001
         )
         self._location["h_acc"] = random.randint(1, 10)  # nosec
         self._location["v_acc"] = random.randint(1, 20)  # nosec
-        
-    
+
     def set_dummy_location(self):
         self.simulate_location()
         request = UpdateDatapointsRequest()
@@ -320,7 +325,7 @@ class TrunkService:
         ].double_value = self._location["v_acc"]
 
         try:
-            log.debug(" Feeding location: %s", self._location);
+            log.debug(" Feeding location: %s", self._location)
             self._stub.UpdateDatapoints(request, metadata=self._metadata)
         except grpc.RpcError as err:
             log.warning("Feeding of current dummy location failed", exc_info=True)
@@ -417,7 +422,7 @@ async def main():
 
 
 if __name__ == "__main__":
-        # set root loglevel etc
+    # set root loglevel etc
     init_logging(logging.INFO)
     # logging.basicConfig(level=logging.INFO)
     log.setLevel(logging.DEBUG)

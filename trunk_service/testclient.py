@@ -40,7 +40,12 @@ class TrunkTestClient(object):
         # bind the client and the server
         self.stub = pb2_grpc.TrunkStub(self.channel)
 
-    def execute_methods(self, lock_state: LockState, open_state: bool, inst: TrunkInstance=TrunkInstance.REAR) -> None:
+    def execute_methods(
+        self,
+        lock_state: LockState,
+        open_state: bool,
+        inst: TrunkInstance = TrunkInstance.REAR,
+    ) -> None:
         """
         Client function to call the rpc for TrunkService methods
         """
@@ -88,7 +93,9 @@ def main(argv):
 
     # parse cmdline args
     try:
-        opts, args = getopt.getopt(argv, "ha:i:l:o:", ["addr=", "inst=", "lock=", "open="])
+        opts, args = getopt.getopt(
+            argv, "ha:i:l:o:", ["addr=", "inst=", "lock=", "open="]
+        )
         for opt, arg in opts:
             if opt == "-h":
                 print(_usage)
@@ -96,9 +103,17 @@ def main(argv):
             elif opt in ("-a", "--addr"):
                 trunk_addr = arg
             elif opt in ("-i", "--inst"):
-                instance = TrunkInstance.Name(int(arg)) if arg.isnumeric() else TrunkInstance.Value(arg)
+                instance = (
+                    TrunkInstance.Name(int(arg))
+                    if arg.isnumeric()
+                    else TrunkInstance.Value(arg)
+                )
             elif opt in ("-l", "--lock"):
-                lock_state = LockState.Name(int(arg)) if arg.isnumeric() else LockState.Value(arg)
+                lock_state = (
+                    LockState.Name(int(arg))
+                    if arg.isnumeric()
+                    else LockState.Value(arg)
+                )
             elif opt in ("-o", "--open"):
                 open_state = True if arg != "0" else False
             else:
