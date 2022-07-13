@@ -289,11 +289,18 @@ class TrunkService:
         log.info("Registered %s with id: %s", name, self._ids[name])
 
     def simulate_location(self):
-        # simulate some location jitter       
-        self._location["lat"] =  + self._location["lat"] + random.uniform(-0.00001, 0.00001)
-        self._location["lon"] =  + self._location["lon"] + random.uniform(-0.00001, 0.00001)
-        self._location["h_acc"] = random.randint(1, 10)
-        self._location["v_acc"] = random.randint(1, 20)
+        # simulate some location jitter
+        self._location["lat"] = +self._location["lat"] + random.uniform(  # nosec B313
+            -0.00001, 0.00001
+        )
+        self._location["lat"] =  + self._location["lat"] + random.uniform(  # nosec B313
+            -0.00001, 0.00001
+        )
+        self._location["lon"] =  + self._location["lon"] + random.uniform(  # nosec B313
+            -0.00001, 0.00001
+        )
+        self._location["h_acc"] = random.randint(1, 10)  # nosec B313
+        self._location["v_acc"] = random.randint(1, 20)  # nosec B313
         
     
     def set_dummy_location(self):
